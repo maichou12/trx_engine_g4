@@ -1,0 +1,34 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.3
+    container_name: keycloak
+    command: start-dev --import-realm
+    volumes:
+      # Dossier contenant ton fichier trx_engine_g4-realm.json
+      - ./realm-config:/opt/keycloak/data/import
+      # Script health-check pour que Docker attende que Keycloak soit prêt
+      - ./realm-config/keycloak-health-check.sh:/opt/keycloak/health-check.sh
+    environment:
+      # Base de données intégrée pour dev
+      - KC_DB=dev-file
+      # Admin Keycloak
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      # Ports HTTP / HTTPS
+      - KC_HTTP_PORT=9080
+      - KC_HTTPS_PORT=9443
+      - KC_HTTP_MANAGEMENT_PORT=9990
+      # Activer les fonctionnalités avancées pour scripts
+      - KC_FEATURES=scripts
+      - KC_HEALTH_ENABLED=true
+    ports:
+      - "127.0.0.1:9080:9080"
+      - "127.0.0.1:9443:9443"
+    healthcheck:
+      test: ["CMD", "bash", "/opt/keycloak/health-check.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 50
+      start_period: 10s
+    labels:
+      org.springframework.boot.ignore: true
