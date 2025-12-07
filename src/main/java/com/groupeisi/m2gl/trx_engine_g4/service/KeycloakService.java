@@ -27,17 +27,21 @@ public class KeycloakService {
 
     @Autowired
     public KeycloakService(
-                            @Value("${keycloak.auth-server-url}") String serverUrl,
-                            @Value("${keycloak.realm}") String realm,
-                            @Value("${keycloak.client-id}") String clientId,
-                            @Value("${keycloak.client-key-password}") String clientSecret) {
+            @Value("${keycloak.auth-server-url}") String serverUrl,
+            @Value("${keycloak.realm}") String realm, // C'est trx_engine_g4
+            @Value("${keycloak.admin.username}") String adminUsername,
+            @Value("${keycloak.admin.password}") String adminPassword) {
+
         this.keycloak = KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
-                .realm(realm)
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .grantType(OAuth2Constants.CLIENT_CREDENTIALS)
+                .realm("master") // <--- CORRECTION ICI : L'admin se connecte via le realm 'master'
+                .clientId("admin-cli")
+                .username(adminUsername)
+                .password(adminPassword)
+                .grantType(OAuth2Constants.PASSWORD)
                 .build();
+
+        // On garde votre realm cible pour les opérations (create/search users)
         this.realm = realm;
     }
 

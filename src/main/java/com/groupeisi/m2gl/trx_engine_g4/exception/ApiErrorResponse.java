@@ -2,6 +2,7 @@ package com.groupeisi.m2gl.trx_engine_g4.exception;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 @Data
@@ -19,4 +20,8 @@ public class ApiErrorResponse {
         this.messages = messages;
     }
 
+    // Constructeur pour les erreurs simples (un seul message)
+    public ApiErrorResponse(int status, String error, String message) {
+        this(status, error, Collections.singletonList(message));
+    }
 }

@@ -17,4 +17,20 @@ public class ApiResponse<T> {
         this.statusCode = statusCode;
         this.data = data;
     }
+
+    // Constructeur de Succès
+    public ApiResponse(String message, int statusCode, T data) {
+        this.message = message;
+        this.success = true;
+        this.statusCode = statusCode;
+        this.data = data;
+    }
+
+    // Constructeur d'Erreur (utilisé dans le GlobalExceptionHandler)
+    public ApiResponse(String message, int statusCode, boolean success) {
+        this.message = message;
+        this.success = success;
+        this.statusCode = statusCode;
+        this.data = null;
+    }
 }

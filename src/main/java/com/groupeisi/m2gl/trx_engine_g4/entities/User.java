@@ -2,8 +2,6 @@ package com.groupeisi.m2gl.trx_engine_g4.entities;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
@@ -37,4 +35,9 @@ public class User {
 
     @NotBlank(message = "Le du rôle est obligatoire")
     private String roleName;
+
+
+    // idCompte va migrer ici
+
+    // creer un endPoint qui cree un compte avec code marchant et retourne un status 201 + id du compte
 }

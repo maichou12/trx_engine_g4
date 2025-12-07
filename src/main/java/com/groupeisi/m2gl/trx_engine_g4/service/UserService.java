@@ -83,11 +83,12 @@ public class UserService {
             log.info("   ✅ Utilisateur créé dans Keycloak ID = {}", keycloakUserId);
 
             // 6. Attribution rôle
-            String roleName = registerRequest.getRoleName() != null ? registerRequest.getRoleName() : "USER";
+            String roleName = registerRequest.getRoleName() != null ? registerRequest.getRoleName() : "user";
             ApiResponse roleResponse = keycloakService.addRoleToUser(keycloakUserId, roleName);
 
             if (!roleResponse.isSuccess()) {
                 // Si l'attribution du rôle échoue, on doit aussi rollback Keycloak
+                log.info(" -------------- Utilisateur créé dans Keycloak ID = {} -----------", roleResponse);
                 throw new RuntimeException("Erreur lors de l'attribution du rôle: " + roleResponse.getMessage());
             }
 

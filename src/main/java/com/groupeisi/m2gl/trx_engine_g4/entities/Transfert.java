@@ -3,6 +3,7 @@ package com.groupeisi.m2gl.trx_engine_g4.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -17,7 +18,7 @@ public class Transfert {
     private float montant;
 
 
-    private LocalDate dateTransfert;
+    private LocalDateTime dateTransfert;
 
 
     @OneToOne(cascade = CascadeType.ALL)

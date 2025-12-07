@@ -3,7 +3,6 @@ package com.groupeisi.m2gl.trx_engine_g4.controller;
 import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse;
 import com.groupeisi.m2gl.trx_engine_g4.request.OtpValidationRequest;
 import com.groupeisi.m2gl.trx_engine_g4.service.CompteService;
-import com.groupeisi.m2gl.trx_engine_g4.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

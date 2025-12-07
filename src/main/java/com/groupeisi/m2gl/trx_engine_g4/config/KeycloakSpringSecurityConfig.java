@@ -26,7 +26,8 @@ public class KeycloakSpringSecurityConfig {
                 .cors(cors -> {}) // Active la configuration CORS par défaut
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/register").permitAll()
-                       .requestMatchers("/api/compte/validate-otp").permitAll()
+                        .requestMatchers("/api/compte/validate-otp").permitAll()
+                        .requestMatchers("/api/transferts").authenticated()
                         .requestMatchers("/public/**", "/").permitAll()
                         .anyRequest().authenticated()
                 )
