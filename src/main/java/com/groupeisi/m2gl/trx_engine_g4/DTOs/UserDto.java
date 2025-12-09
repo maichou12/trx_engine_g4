@@ -29,4 +29,6 @@ public class UserDto {
 
     @NotBlank(message = "Le du rôle est obligatoire")
     private String roleName;
+
+    private Integer compteId;
 }

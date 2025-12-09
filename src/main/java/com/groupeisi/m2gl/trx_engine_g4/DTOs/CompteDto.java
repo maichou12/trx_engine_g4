@@ -17,7 +17,4 @@ public class CompteDto {
 
     @NotBlank(message = "Le type de compte est obligatoire")
     private String typeCompte;
-
-    @NotNull(message = "L'utilisateur est obligatoire")
-    private Integer userId;
 }

@@ -229,21 +229,6 @@ public class UserService {
         }
     }
 
-    /**
-     * Vérifie si un téléphone est valide et disponible
-     */
-    public ApiResponse checkPhoneAvailability(String telephone) {
-        if (!isValidPhoneNumber(telephone)) {
-            return new ApiResponse<>("Format de téléphone invalide", false, 400, null);
-        }
-
-        if (phoneExists(telephone)) {
-            return new ApiResponse<>("Numéro de téléphone déjà utilisé", false, 409, null);
-        }
-
-        return new ApiResponse<>("Numéro de téléphone disponible", true, 200, null);
-    }
-
     // Dans UserService.java, changez le retour de saveUserInDatabase
     public ApiResponse<User> saveUserInDatabase(UserDto userDTO, String keycloakUserId) { // ⬅️ CHANGEMENT
         log.info("➡️ Sauvegarde utilisateur dans la DB locale ID Keycloak={}", keycloakUserId);
@@ -364,6 +349,107 @@ public class UserService {
             return new ApiResponse<>("Utilisateurs récupérés avec succès", true, 200, users);
         } catch (Exception e) {
             return new ApiResponse<>("Erreur lors de la récupération des utilisateurs: " + e.getMessage(), false, 500, null);
+        }
+    }
+
+    /**
+     * Fonction d'inscription Marchant
+     */
+    @Transactional
+    public ApiResponse registerUserMarchant(RegisterRequest registerRequest) {
+        log.info("➡️ Début inscription utilisateur : {}", registerRequest.getNomUtilisateur());
+
+        // Variable pour stocker l'ID Keycloak en cas de besoin de suppression
+        String keycloakUserId = null;
+
+        try {
+            // 1. Validation des données de base
+            ApiResponse validationResponse = validateRegistrationData(registerRequest);
+            if (!validationResponse.isSuccess()) {
+                return validationResponse;
+            }
+
+            // 2. Vérification du téléphone (DB locale)
+            if (phoneExists(registerRequest.getTelephone())) {
+                return new ApiResponse<>("Ce numéro de téléphone est déjà enregistré", false, 409, null);
+            }
+
+            // 3. Vérification du nom d'utilisateur (Keycloak)
+            String username = registerRequest.getNomUtilisateur();
+            log.info("🔍 Vérification disponibilité username : {}", username);
+
+            ApiResponse<String> usernameCheck = keycloakService.usernameExists(username);
+
+            if (!usernameCheck.isSuccess() && usernameCheck.getStatusCode() == 409) {
+                log.warn("❌ Username '{}' déjà pris.", username);
+                return new ApiResponse<>("Le nom d'utilisateur '" + username + "' est déjà pris ou indisponible.", false, 409, null);
+            }
+
+            if (!usernameCheck.isSuccess() && usernameCheck.getStatusCode() >= 500) {
+                log.error("💥 ERREUR Keycloak - Problème d'authentification/serveur : Code {}", usernameCheck.getStatusCode());
+                return new ApiResponse<>("Erreur de connexion au serveur d'identité Keycloak (vérifiez les logs KeycloakService).", false, usernameCheck.getStatusCode(), null);
+            }
+
+            // 4. Création DTO
+            UserDto userDTO = createUserDtoFromRequest(registerRequest, username);
+
+            // 5. Création dans Keycloak (Étape critique 1)
+            keycloakUserId = keycloakService.createUser(userDTO);
+            log.info("   ✅ Utilisateur créé dans Keycloak ID = {}", keycloakUserId);
+
+            // 6. Attribution rôle
+            String roleName = registerRequest.getRoleName() != null ? registerRequest.getRoleName() : "user";
+            ApiResponse roleResponse = keycloakService.addRoleToUser(keycloakUserId, roleName);
+
+            if (!roleResponse.isSuccess()) {
+                // Si l'attribution du rôle échoue, on doit aussi rollback Keycloak
+                log.info(" -------------- Utilisateur créé dans Keycloak ID = {} -----------", roleResponse);
+                throw new RuntimeException("Erreur lors de l'attribution du rôle: " + roleResponse.getMessage());
+            }
+
+            // 7. Sauvegarde en DB locale (Étape critique 2 - L'échec précédent était ici)
+            userDTO.setRoleName(roleName);
+            ApiResponse<User> saveResponse = saveUserInDatabase(userDTO, keycloakUserId);
+            if (!saveResponse.isSuccess()) {
+                throw new RuntimeException("Erreur de validation ou de persistance DB: " + saveResponse.getMessage());
+            }
+
+            User savedUser = (User) saveResponse.getData();
+            ApiResponse compteResponse = compteService.createMerchantCompteAndSendOtp(savedUser);
+
+            if (!compteResponse.isSuccess()) {
+                throw new RuntimeException("Erreur lors de la création du compte/OTP: " + compteResponse.getMessage());
+            }
+            return new ApiResponse<>(
+                    "Inscription réussie. Veuillez valider votre compte en utilisant le code OTP envoyé par SMS.",
+                    true,
+                    201,
+                    Map.of(
+                            "compteId", savedUser.getCompte().getId(),
+                            "username", username,
+                            "userId", keycloakUserId,
+                            "numCompte", compteResponse.getData()
+                    )
+            );
+
+        } catch (Exception e) {
+            log.error("💥 ERREUR lors de l'inscription : {}", e.getMessage(), e);
+
+            // 💥 LOGIQUE DE COMPENSATION (ROLLBACK KEYCLOAK)
+            if (keycloakUserId != null) {
+                log.warn("➡️ COMPENSATION : L'inscription locale a échoué. Suppression de l'utilisateur Keycloak ID : {}", keycloakUserId);
+                // On ignore le résultat de la suppression, car la vraie erreur est celle d'origine.
+                keycloakService.deleteUser(keycloakUserId);
+                log.warn("   ✅ Compensation Keycloak effectuée.");
+            }
+
+            // Si l'erreur provient de la validation JPA (contraintes sur NIN ou téléphone, etc.)
+            if (e instanceof ConstraintViolationException) {
+                return new ApiResponse<>("Validation DB locale échouée: Assurez-vous que le NIN est présent et le téléphone valide.", false, 400, null);
+            }
+
+            // Gestion des erreurs Keycloak non catchées ou autres erreurs inattendues
+            return new ApiResponse<>("Erreur technique: " + e.getMessage(), false, 500, null);
         }
     }
 }

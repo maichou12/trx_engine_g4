@@ -26,9 +26,6 @@ public class Compte {
 
     private LocalDate dateCreation;
 
-    @ManyToOne
-    private User user;
-
     private String status;
     private String otpCode;
     private Long otpExpiryTime;

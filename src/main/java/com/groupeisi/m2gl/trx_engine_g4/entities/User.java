@@ -36,8 +36,10 @@ public class User {
     @NotBlank(message = "Le du rôle est obligatoire")
     private String roleName;
 
+    @OneToOne
+    @JoinColumn(name = "compte_id")
+    private Compte compte;
 
-    // idCompte va migrer ici
 
-    // creer un endPoint qui cree un compte avec code marchant et retourne un status 201 + id du compte
+    // creer un endPoint qui cree un compteMarchant avec code marchant et retourne un status 201 + id du compte
 }

@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import com.groupeisi.m2gl.trx_engine_g4.entities.Compte;
 public interface CompteRepository extends JpaRepository<Compte, Integer> {
-    Optional<Compte> findByUser(User user);
+//    Optional<Compte> findByUser(User user);
     Optional<Compte> findByNumCompte(UUID numCompte);
     boolean existsByNumCompte(UUID numCompte);
 }

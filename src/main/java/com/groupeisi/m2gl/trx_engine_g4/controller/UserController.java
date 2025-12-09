@@ -31,9 +31,23 @@ public class UserController {
         return userService.updateUser(userId, userDto);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse> register(@RequestBody RegisterRequest registerRequest) {
+    @PostMapping("/register/client")
+    public ResponseEntity<ApiResponse> registerClient(@RequestBody RegisterRequest registerRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userService.registerUser(registerRequest));
     }
+
+    @PostMapping("/register/marchant")
+    public ResponseEntity<ApiResponse> registerMarchant(@RequestBody RegisterRequest registerRequest) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(userService.registerUserMarchant(registerRequest));
+    }
+
+    @GetMapping("/getUserByPhone/{phone}")
+    public ResponseEntity<ApiResponse> getUserByPhone(@PathVariable String phone) {
+        return ResponseEntity.ok(userService.getUserByPhone(phone));
+    }
+
+
+
 }
