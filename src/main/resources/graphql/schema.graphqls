@@ -1,0 +1,31 @@
+type Query {
+    _healthCheck: String
+}
+
+type Mutation {
+    payerMarchand(input: PayerMarchandInput!): ApiResponseTransfert!
+}
+
+input PayerMarchandInput {
+    montant: Float!
+    compteEmetteur: ID!
+    compteRecepteur: ID!
+}
+
+type ApiResponseTransfert {
+    message: String
+    status: Int
+    data: Transfert
+}
+
+type Transfert {
+    id: ID
+    montant: Float
+    dateTransfert: String
+    detailsTransaction: DetailsTransaction
+}
+
+type DetailsTransaction {
+    compteEmetteur: ID
+    compteRecepteur: ID
+}

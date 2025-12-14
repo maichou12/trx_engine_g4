@@ -15,14 +15,16 @@ services:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
       # Ports HTTP / HTTPS
-      - KC_HTTP_PORT=9080
+      #- KC_HTTP_PORT=9080
+      - KC_HTTP_PORT=8080
       - KC_HTTPS_PORT=9443
       - KC_HTTP_MANAGEMENT_PORT=9990
       # Activer les fonctionnalités avancées pour scripts
       - KC_FEATURES=scripts
       - KC_HEALTH_ENABLED=true
     ports:
-      - "127.0.0.1:9080:9080"
+      #- "127.0.0.1:9080:9080"
+      - "127.0.0.1:8080:8080"
       - "127.0.0.1:9443:9443"
     healthcheck:
       test: ["CMD", "bash", "/opt/keycloak/health-check.sh"]

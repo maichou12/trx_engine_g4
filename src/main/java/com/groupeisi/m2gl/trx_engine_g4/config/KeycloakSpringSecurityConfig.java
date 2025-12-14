@@ -27,6 +27,10 @@ public class KeycloakSpringSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/register").permitAll()
                         .requestMatchers("/api/compte/validate-otp").permitAll()
+                        //  AUTORISER GRAPHQL
+                        .requestMatchers("/graphql").permitAll()
+                        .requestMatchers("/graphiql/**").permitAll()
+
                         .requestMatchers("/api/transferts").authenticated()
                         .requestMatchers("/public/**", "/").permitAll()
                         .anyRequest().authenticated()

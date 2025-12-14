@@ -82,4 +82,142 @@ public class TransfertService {
 
         return transfertRepository.save(transfert);
     }
+
+//    @Transactional
+//    public ApiResponse<Transfert> payerMarchand(UUID idClient, UUID idMarchand, float montant) {
+//
+//        // Vérifie qu'un client ne peut pas se payer lui-même
+//        if (idClient.equals(idMarchand)) {
+//            throw new IllegalArgumentException("Le client et le marchand ne peuvent pas être le même compte.");
+//        }
+//
+//        // Récupère les comptes ou lance une exception s'ils n'existent pas
+//        Compte client = getCompteOrThrow(idClient, "client");
+//        Compte marchand = getCompteOrThrow(idMarchand, "marchand");
+//
+//        // Vérifie que le compte client n'est pas bloqué
+//        if ("BLOQUE".equalsIgnoreCase(client.getStatus())) {
+//            throw new IllegalStateException("Le compte client est bloqué.");
+//        }
+//
+//        // Vérifie que le compte marchand n'est pas bloqué
+//        if ("BLOQUE".equalsIgnoreCase(marchand.getStatus())) {
+//            throw new IllegalStateException("Le compte marchand est bloqué.");
+//        }
+//
+//        // Vérifie que le solde du client est suffisant pour le paiement
+//        if (client.getSolde() < montant) {
+//            throw new IllegalArgumentException("Solde insuffisant. Solde actuel : " + client.getSolde());
+//        }
+//
+//        // Débiter le client
+//        client.setSolde(client.getSolde() - montant);
+//
+//        // Créditer le marchand
+//        marchand.setSolde(marchand.getSolde() + montant);
+//
+//        // Sauvegarde des nouveaux soldes dans la base
+//        compteRepository.save(client);
+//        compteRepository.save(marchand);
+//
+//        // Préparation du DTO pour historiser l'opération
+//        TransfertDto dto = new TransfertDto();
+//        dto.setMontant(montant);
+//        dto.setCompteEmetteur(idClient);
+//        dto.setCompteRecepteur(idMarchand);
+//
+//        // Enregistrement de l'opération dans un historique
+//        Transfert historique = enregistrerTransfert(dto);
+//
+//        // Retour d'une réponse API standardisée
+//        return new ApiResponse<>(
+//                "Paiement effectué avec succès (client → marchand).",
+//                201,
+//                historique
+//        );
+//    }
+
+    @Transactional
+    public ApiResponse<Transfert> payerMarchand(UUID idClient, UUID idMarchand, float montant) {
+
+        // 1️ Vérifier que client ≠ marchand
+        if (idClient.equals(idMarchand)) {
+            return new ApiResponse<>(
+                    "Le client et le marchand ne peuvent pas être le même compte.",
+                    400,
+                    null
+            );
+        }
+
+        // Récupération des comptes (SANS exception)
+        Compte client = compteRepository.findByNumCompte(idClient).orElse(null);
+        Compte marchand = compteRepository.findByNumCompte(idMarchand).orElse(null);
+
+        if (client == null) {
+            return new ApiResponse<>(
+                    "Compte client introuvable.",
+                    404,
+                    null
+            );
+        }
+
+        if (marchand == null) {
+            return new ApiResponse<>(
+                    "Compte marchand introuvable.",
+                    404,
+                    null
+            );
+        }
+
+        //  Vérifications métier
+        if ("BLOQUE".equalsIgnoreCase(client.getStatus())) {
+            return new ApiResponse<>(
+                    "Le compte client est bloqué.",
+                    403,
+                    null
+            );
+        }
+
+        if ("BLOQUE".equalsIgnoreCase(marchand.getStatus())) {
+            return new ApiResponse<>(
+                    "Le compte marchand est bloqué.",
+                    403,
+                    null
+            );
+        }
+
+        if (client.getSolde() < montant) {
+            return new ApiResponse<>(
+                    "Solde insuffisant. Solde actuel : " + client.getSolde(),
+                    400,
+                    null
+            );
+        }
+
+        //  Débit / Crédit
+        client.setSolde(client.getSolde() - montant);
+        marchand.setSolde(marchand.getSolde() + montant);
+
+        compteRepository.save(client);
+        compteRepository.save(marchand);
+
+        //  Historique
+        TransfertDto dto = new TransfertDto();
+        dto.setMontant(montant);
+        dto.setCompteEmetteur(idClient);
+        dto.setCompteRecepteur(idMarchand);
+
+        Transfert historique = enregistrerTransfert(dto);
+
+        // Réponse succès
+        return new ApiResponse<>(
+                "Paiement effectué avec succès (client → marchand).",
+                201,
+                historique
+        );
+    }
+
+
+
+
 }
