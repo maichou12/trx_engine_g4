@@ -144,7 +144,6 @@ public class UserService {
         if (request.getTelephone() == null || request.getTelephone().trim().isEmpty()) {
             return new ApiResponse<>("Le numéro de téléphone est obligatoire", false, 400, null);
         }
-
         // Validation format téléphone (E.164)
         if (!isValidPhoneNumber(request.getTelephone())) {
             return new ApiResponse<>(
@@ -152,17 +151,14 @@ public class UserService {
                     false, 400, null
             );
         }
-
         // Vérification prénom
         if (request.getPrenom() == null || request.getPrenom().trim().isEmpty()) {
             return new ApiResponse<>("Le prénom est obligatoire", false, 400, null);
         }
-
         // Vérification nom
         if (request.getNom() == null || request.getNom().trim().isEmpty()) {
             return new ApiResponse<>("Le nom est obligatoire", false, 400, null);
         }
-
         // AJOUT : Validation du nom d'utilisateur
         if (request.getNomUtilisateur() == null || request.getNomUtilisateur().trim().isEmpty()) {
             return new ApiResponse<>("Le nom d'utilisateur est obligatoire", false, 400, null);
