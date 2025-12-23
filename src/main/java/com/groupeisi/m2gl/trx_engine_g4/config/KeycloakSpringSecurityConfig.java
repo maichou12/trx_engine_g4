@@ -27,7 +27,8 @@ public class KeycloakSpringSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/register/client").permitAll()
                         .requestMatchers("/api/users/register/marchant").permitAll()
-                        .requestMatchers("/api/users/getUserByPhone/{phone}").permitAll()
+                        .requestMatchers("/api/users/getUserByPhone/**").permitAll()
+                        .requestMatchers("/api/compte/create-marchand/**").permitAll()
                         .requestMatchers("/api/compte/validate-otp").permitAll()
                         .requestMatchers("/api/transferts").authenticated()
                         .requestMatchers("/public/**", "/").permitAll()

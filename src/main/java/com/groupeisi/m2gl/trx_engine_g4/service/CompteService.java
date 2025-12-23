@@ -173,4 +173,57 @@ public class CompteService {
         return 100000 + random.nextInt(900000); // 6 digits
     }
 
+    @Transactional
+    public ApiResponse createMerchantCompte(String telephone) {
+
+        User user = userRepository.findByTelephone(telephone)
+                .orElseThrow(() ->
+                        new RuntimeException("Utilisateur introuvable"));
+
+        // Vérifier s’il a déjà un compte marchand
+        /*if (compteRepository.existsByUserIdAndTypeCompte(user.getId(), "MARCHAND")) {
+            return new ApiResponse<>(
+                    "Compte marchand déjà existant",
+                    false,
+                    409,
+                    null
+            );
+        }*/
+
+        Compte compte = new Compte();
+        compte.setNumCompte(UUID.randomUUID());
+        compte.setSolde(0f);
+        compte.setTypeCompte("MARCHAND");
+        compte.setStatus("DISABLE");
+        compte.setCodeMarchant(generateCodeMarchant());
+        compte.setDateCreation(LocalDate.now());
+
+        // OTP
+        String otp = generateOtp();
+        compte.setOtpCode(otp);
+        compte.setOtpExpiryTime(
+                Instant.now().getEpochSecond() + OTP_EXPIRATION_SECONDS
+        );
+
+        compteRepository.save(compte);
+
+        // Lier le compte marchand à l’utilisateur
+        user.setCompte(compte);
+        userRepository.save(user);
+
+        smsService.sendSms(
+                user.getTelephone(),
+                "Votre OTP marchand est : " + otp
+        );
+
+        return new ApiResponse<>(
+                "Compte marchand créé. OTP envoyé.",
+                true,
+                201,
+                compte.getId()
+        );
+    }
+
+
+
 }

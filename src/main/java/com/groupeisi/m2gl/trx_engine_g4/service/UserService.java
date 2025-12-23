@@ -415,20 +415,21 @@ public class UserService {
             }
 
             User savedUser = (User) saveResponse.getData();
-            ApiResponse compteResponse = compteService.createMerchantCompteAndSendOtp(savedUser);
+            //ApiResponse compteResponse = compteService.createMerchantCompteAndSendOtp(savedUser);
 
-            if (!compteResponse.isSuccess()) {
+            /*if (!compteResponse.isSuccess()) {
                 throw new RuntimeException("Erreur lors de la création du compte/OTP: " + compteResponse.getMessage());
-            }
+            }*/
             return new ApiResponse<>(
-                    "Inscription réussie. Veuillez valider votre compte en utilisant le code OTP envoyé par SMS.",
+                    "Inscription marchand réussie. Vous pouvez compléter votre profil et créer votre compte marchand.",
                     true,
                     201,
                     Map.of(
-                            "compteId", savedUser.getCompte().getId(),
+//                            "compteId", savedUser.getCompte().getId(),
                             "username", username,
                             "userId", keycloakUserId,
-                            "numCompte", compteResponse.getData()
+                            "localUserId", savedUser.getId()
+//                            "numCompte", compteResponse.getData()
                     )
             );
 
