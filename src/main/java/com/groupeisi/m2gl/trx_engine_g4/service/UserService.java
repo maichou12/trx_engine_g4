@@ -1,5 +1,6 @@
 package com.groupeisi.m2gl.trx_engine_g4.service;
 
+import com.groupeisi.m2gl.trx_engine_g4.DTOs.CompleteProfileRequest;
 import com.groupeisi.m2gl.trx_engine_g4.entities.User;
 import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse;
 import com.groupeisi.m2gl.trx_engine_g4.Repository.UserRepository;
@@ -451,6 +452,72 @@ public class UserService {
 
             // Gestion des erreurs Keycloak non catchées ou autres erreurs inattendues
             return new ApiResponse<>("Erreur technique: " + e.getMessage(), false, 500, null);
+        }
+    }
+
+    /**
+     * Complète le profil utilisateur après validation OTP
+     * Endpoint public - pas besoin d'authentification
+     */
+    public ApiResponse completeProfile(CompleteProfileRequest request) {
+        log.info("📝 Début complétion du profil pour: {}", request.getTelephone());
+
+        try {
+            // 1. Récupérer l'utilisateur par son numéro de téléphone
+            Optional<User> userOptional = userRepository.findByTelephone(request.getTelephone());
+
+            if (userOptional.isEmpty()) {
+                log.warn("❌ Utilisateur non trouvé pour le numéro: {}", request.getTelephone());
+                return new ApiResponse(
+                        "Utilisateur non trouvé avec ce numéro de téléphone",
+                        false,
+                        404,
+                        null
+                );
+            }
+
+            User user = userOptional.get();
+            log.info("✅ Utilisateur trouvé: {} (ID: {})", user.getNomUtilisateur(), user.getId());
+
+            // 2. Mettre à jour le profil avec les vraies données
+            user.setNom(request.getNom());
+            user.setPrenom(request.getPrenom());
+            
+            if (request.getNin() != null && !request.getNin().isEmpty()) {
+                try {
+                    user.setNin(Long.parseLong(request.getNin()));
+                } catch (NumberFormatException e) {
+                    log.warn("⚠️ NIN invalide (non numérique): {}", request.getNin());
+                }
+            }
+
+            // 3. Sauvegarder dans la base de données
+            User updatedUser = userRepository.save(user);
+            log.info("✅ Profil mis à jour avec succès: {} {}", updatedUser.getPrenom(), updatedUser.getNom());
+
+            // 4. Retourner le profil mis à jour
+            return new ApiResponse(
+                    "Profil complété avec succès",
+                    true,
+                    200,
+                    Map.of(
+                            "id", updatedUser.getId().toString(),
+                            "nom", updatedUser.getNom(),
+                            "prenom", updatedUser.getPrenom(),
+                            "telephone", updatedUser.getTelephone(),
+                            "nin", updatedUser.getNin() != null ? updatedUser.getNin() : "",
+                            "nomUtilisateur", updatedUser.getNomUtilisateur()
+                    )
+            );
+
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de la complétion du profil: {}", e.getMessage(), e);
+            return new ApiResponse(
+                    "Erreur lors de la mise à jour du profil: " + e.getMessage(),
+                    false,
+                    500,
+                    null
+            );
         }
     }
 }

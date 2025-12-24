@@ -224,6 +224,64 @@ public class CompteService {
         );
     }
 
-
-
+    /**
+     * Récupère le compte d'un utilisateur par son numéro de téléphone
+     */
+    public ApiResponse getCompteByPhone(String telephone) {
+        log.info("🔍 Recherche du compte pour le numéro: {}", telephone);
+        
+        try {
+            // 1. Récupérer l'utilisateur par son numéro de téléphone
+            Optional<User> userOptional = userRepository.findByTelephone(telephone);
+            
+            if (userOptional.isEmpty()) {
+                log.warn("❌ Utilisateur non trouvé pour le numéro: {}", telephone);
+                return new ApiResponse(
+                        "Utilisateur non trouvé avec ce numéro de téléphone",
+                        false,
+                        404,
+                        null
+                );
+            }
+            
+            User user = userOptional.get();
+            
+            // 2. Récupérer le compte associé à l'utilisateur
+            if (user.getCompte() == null) {
+                log.warn("❌ Aucun compte trouvé pour l'utilisateur: {}", user.getNomUtilisateur());
+                return new ApiResponse(
+                        "Aucun compte trouvé pour cet utilisateur",
+                        false,
+                        404,
+                        null
+                );
+            }
+            
+            Compte compte = user.getCompte();
+            log.info("✅ Compte trouvé: {} - Solde: {} CFA", compte.getNumCompte(), compte.getSolde());
+            
+            // 3. Retourner les informations du compte
+            return new ApiResponse(
+                    "Compte récupéré avec succès",
+                    true,
+                    200,
+                    java.util.Map.of(
+                            "numCompte", compte.getNumCompte().toString(),
+                            "solde", compte.getSolde(),
+                            "typeCompte", compte.getTypeCompte(),
+                            "status", compte.getStatus(),
+                            "dateCreation", compte.getDateCreation() != null ? compte.getDateCreation().toString() : null
+                    )
+            );
+            
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de la récupération du compte: {}", e.getMessage(), e);
+            return new ApiResponse(
+                    "Erreur lors de la récupération du compte: " + e.getMessage(),
+                    false,
+                    500,
+                    null
+            );
+        }
+    }
 }

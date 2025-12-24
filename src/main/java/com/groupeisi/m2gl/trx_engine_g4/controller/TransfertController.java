@@ -19,4 +19,9 @@ public class TransfertController {
     public ApiResponse<Transfert> createTransfert(@RequestBody @Valid TransfertDto transfertDto) {
         return transfertService.effectuerTransfert(transfertDto);
     }
+
+    @GetMapping("/user/{phoneNumber}")
+    public ApiResponse getTransfertsByUser(@PathVariable String phoneNumber) {
+        return transfertService.getTransfertsByUser(phoneNumber);
+    }
 }

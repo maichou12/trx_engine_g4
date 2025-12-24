@@ -49,4 +49,10 @@ public class CompteController {
                 .status(response.getStatusCode())
                 .body(response);
     }
+
+    @GetMapping("/by-phone/{telephone}")
+    public ResponseEntity<ApiResponse> getCompteByPhone(@PathVariable String telephone) {
+        ApiResponse response = compteService.getCompteByPhone(telephone);
+        return ResponseEntity.status(response.getStatusCode()).body(response);
+    }
 }

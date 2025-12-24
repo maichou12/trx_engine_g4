@@ -1,5 +1,6 @@
 package com.groupeisi.m2gl.trx_engine_g4.controller;
 
+import com.groupeisi.m2gl.trx_engine_g4.DTOs.CompleteProfileRequest;
 import com.groupeisi.m2gl.trx_engine_g4.DTOs.UserDto;
 import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse;
 import com.groupeisi.m2gl.trx_engine_g4.request.RegisterRequest;
@@ -48,5 +49,8 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserByPhone(phone));
     }
 
-
+    @PostMapping("/complete-profile")
+    public ResponseEntity<ApiResponse> completeProfile(@RequestBody CompleteProfileRequest request) {
+        return ResponseEntity.ok(userService.completeProfile(request));
+    }
 }
