@@ -25,12 +25,25 @@ public class KeycloakSpringSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> {}) // Active la configuration CORS par défaut
                 .authorizeHttpRequests(auth -> auth
+                        // PUBLIC ENDPOINTS - PAS BESOIN D'AUTHENTIFICATION
                         .requestMatchers("/api/users/register/client").permitAll()
                         .requestMatchers("/api/users/register/marchant").permitAll()
                         .requestMatchers("/api/users/getUserByPhone/{phone}").permitAll()
                         .requestMatchers("/api/compte/validate-otp").permitAll()
-                        .requestMatchers("/api/transferts").authenticated()
+                        .requestMatchers("/api/users/validate-otp").permitAll()
+                        
+                        // 🔥 AJOUT: ENDPOINTS DE PAIEMENT POUR TESTS
+                        .requestMatchers("/api/payments/**").permitAll()
+                        
+                        // ENDPOINTS PUBLIC
                         .requestMatchers("/public/**", "/").permitAll()
+                        
+                        // ENDPOINTS HEALTH CHECK
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/health").permitAll()
+                        
+                        // PROTECTED ENDPOINTS - BESOIN D'AUTHENTIFICATION
+                        .requestMatchers("/api/transferts").authenticated()
                         .anyRequest().authenticated()
                 )
                 // Configuration Resource Server (JWT) pour les routes protégées

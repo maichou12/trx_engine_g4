@@ -6,7 +6,7 @@ import com.groupeisi.m2gl.trx_engine_g4.entities.DetailsTransaction;
 import com.groupeisi.m2gl.trx_engine_g4.entities.Transfert;
 import com.groupeisi.m2gl.trx_engine_g4.Repository.CompteRepository;
 import com.groupeisi.m2gl.trx_engine_g4.Repository.TransfertRepository;
-import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse; // Importez ApiResponse
+import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse; 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

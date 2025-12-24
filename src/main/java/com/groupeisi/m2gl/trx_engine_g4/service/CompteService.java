@@ -120,7 +120,6 @@ public class CompteService {
         return new ApiResponse<>("Compte activé avec succès.", true, 200, null);
     }
 
-
     /**
      * Génère un code OTP de 6 chiffres.
      */
@@ -137,7 +136,7 @@ public class CompteService {
         compte.setNumCompte(UUID.randomUUID());
         compte.setSolde(0.0f);
         compte.setStatus("DISABLE");
-        compte.setTypeCompte("MARCHANT");
+        compte.setTypeCompte("MARCHAND"); // 🔥 CORRECTION : "MARCHANT" → "MARCHAND"
         compte.setCodeMarchant(generateCodeMarchant());
 
         user.setCompte(compte);
@@ -153,17 +152,15 @@ public class CompteService {
         compteRepository.save(compte);
 
         smsService.sendSms(user.getTelephone(),
-                String.format("Votre OTP marchant est : %s (expire dans 5 minutes)", otp));
+                String.format("Votre OTP marchand est : %s (expire dans 5 minutes)", otp));
 
-        log.info("🔥 Compte marchant créé pour user ID {} avec statut DISABLE", user.getId());
+        log.info("🔥 Compte marchand créé pour user ID {} avec statut DISABLE", user.getId());
 
-        return new ApiResponse<>("Compte marchant créé (DISABLE) et OTP envoyé.",
+        return new ApiResponse<>("Compte marchand créé (DISABLE) et OTP envoyé.",
                 true,
                 201,
                 compte.getId());
     }
-
-
 
     /**
      * Génère un code marchant sur 6 chiffres.
@@ -172,5 +169,4 @@ public class CompteService {
         Random random = new Random();
         return 100000 + random.nextInt(900000); // 6 digits
     }
-
 }

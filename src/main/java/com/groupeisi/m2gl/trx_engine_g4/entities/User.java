@@ -40,6 +40,9 @@ public class User {
     @JoinColumn(name = "compte_id")
     private Compte compte;
 
-
+// 🔥 AJOUTER JUSTE CETTE MÉTHODE À LA FIN :
+    public boolean estMarchand() {
+        return this.compte != null && this.compte.isMarchand();
+    }
     // creer un endPoint qui cree un compteMarchant avec code marchant et retourne un status 201 + id du compte
 }

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Script de vérification de santé pour Keycloak
+# Vérifie si Keycloak est prêt à recevoir des requêtes
+
+echo "🔍 Vérification de l'état de Keycloak..."
+
+# Essayer de se connecter à l'endpoint de santé de Keycloak
+if curl -s -f "http://localhost:9990/health/ready" > /dev/null; then
+    echo "✅ Keycloak est prêt !"
+    exit 0
+else
+    echo "⏳ Keycloak n'est pas encore prêt..."
+    # Afficher plus d'infos en cas d'échec
+    curl -s "http://localhost:9990/health/ready" || echo "Impossible de contacter Keycloak"
+    exit 1
+fi
