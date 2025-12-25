@@ -207,10 +207,6 @@ public class CompteService {
 
         compteRepository.save(compte);
 
-        // Lier le compte marchand à l’utilisateur
-        user.setCompte(compte);
-        userRepository.save(user);
-
         smsService.sendSms(
                 user.getTelephone(),
                 "Votre OTP marchand est : " + otp
