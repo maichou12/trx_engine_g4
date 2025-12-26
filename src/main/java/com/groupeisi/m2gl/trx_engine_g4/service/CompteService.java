@@ -5,7 +5,6 @@ import com.groupeisi.m2gl.trx_engine_g4.entities.User;
 import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse;
 import com.groupeisi.m2gl.trx_engine_g4.Repository.CompteRepository;
 import com.groupeisi.m2gl.trx_engine_g4.Repository.UserRepository;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
@@ -33,80 +32,68 @@ public class CompteService {
         this.smsService = smsService;
     }
 
-    // Le temps d'expiration de l'OTP en secondes (ex: 5 minutes)
     private static final long OTP_EXPIRATION_SECONDS = 300;
 
-    /**
-     * Crée un compte UNIQUE avec statut 'DISABLE', génère un OTP et l'envoie par SMS.
-     * @param user L'utilisateur nouvellement créé.
-     * @return ApiResponse
-     */
     @Transactional
     public ApiResponse createUniqueCompteAndSendOtp(User user) {
-        // 1. Générer le compte
         Compte compte = new Compte();
         compte.setNumCompte(UUID.randomUUID());
         compte.setSolde(0.0f);
         compte.setTypeCompte("CLIENT");
-        user.setCompte(compte);
-        userRepository.save(user);
-        compte.setStatus("DISABLE"); // Statut initial
+        compte.setStatus("DISABLE");
 
-        // 2. Générer l'OTP et sa durée de validité
         String otp = generateOtp();
         long expiryTime = Instant.now().getEpochSecond() + OTP_EXPIRATION_SECONDS;
 
         compte.setOtpCode(otp);
         compte.setOtpExpiryTime(expiryTime);
 
-        // 3. Sauvegarder en DB
-        compteRepository.save(compte);
-        log.info("✅ Compte unique créé pour l'utilisateur ID: {} avec statut DISABLE.", user.getId());
+        user.setCompte(compte);
+        userRepository.save(user); // Le compte sera sauvegardé via cascade
+        log.info("✅ Compte unique cree pour l'utilisateur ID: {} avec statut DISABLE.", user.getId());
 
-        // 4. Envoyer le code OTP par SMS
         String message = String.format("Votre code d'activation est : %s. Il expire dans 5 minutes.", otp);
         smsService.sendSms(user.getTelephone(), message);
-        log.info("📧 Code OTP envoyé au numéro : {}", user.getTelephone());
+        log.info("📧 Code OTP envoye au numero : {}", user.getTelephone());
 
-        return new ApiResponse<>("Compte créé (DISABLE) et OTP envoyé.", true, 201, compte.getNumCompte().toString());
+        return new ApiResponse("Compte cree (DISABLE) et OTP envoye.", 201, compte.getNumCompte().toString()); 
     }
 
-    /**
-     * Valide l'OTP et active le compte.
-     * @param telephone Le numéro de téléphone de l'utilisateur.
-     * @param otp Le code OTP fourni par l'utilisateur.
-     * @return ApiResponse
-     */
     @Transactional
     public ApiResponse validateOtpAndEnableCompte(String telephone, String otp) {
 
-        // 1️⃣ Récupération du user via le téléphone
         Optional<User> userOpt = userRepository.findByTelephone(telephone);
         if (userOpt.isEmpty()) {
-            return new ApiResponse<>("Utilisateur non trouvé.", false, 404, null);
+            return new ApiResponse("Utilisateur non trouve.", 404, false); 
         }
 
         User user = userOpt.get();
 
-        // 2️⃣ Récupération du compte via user.getCompte()
         Compte compte = user.getCompte();
         if (compte == null) {
-            return new ApiResponse<>("Compte associé non trouvé.", false, 404, null);
+            return new ApiResponse("Compte associe non trouve.", 404, false); 
+        }
+
+        // Vérifier si le compte est déjà activé
+        if ("ENABLE".equals(compte.getStatus())) {
+            return new ApiResponse("Le compte est deja active.", 400, false); 
+        }
+
+        // Vérifier si un OTP existe (si le compte a déjà été activé, l'OTP serait null)
+        if (compte.getOtpCode() == null || compte.getOtpExpiryTime() == null) {
+            return new ApiResponse("Aucun code OTP en attente de validation. Le compte a peut-etre deja ete active.", 400, false); 
         }
 
         long now = Instant.now().getEpochSecond();
 
-        // 3️⃣ Vérification expiration OTP
-        if (compte.getOtpExpiryTime() == null || now > compte.getOtpExpiryTime()) {
-            return new ApiResponse<>("Le code OTP a expiré.", false, 400, null);
+        if (now > compte.getOtpExpiryTime()) {
+            return new ApiResponse("Le code OTP a expire.", 400, false); 
         }
 
-        // 4️⃣ Vérification OTP
         if (!otp.equals(compte.getOtpCode())) {
-            return new ApiResponse<>("Code OTP invalide.", false, 400, null);
+            return new ApiResponse("Code OTP invalide.", 400, false); 
         }
 
-        // 5️⃣ Activation du compte
         compte.setStatus("ENABLE");
         compte.setOtpCode(null);
         compte.setOtpExpiryTime(null);
@@ -115,18 +102,13 @@ public class CompteService {
 
         compteRepository.save(compte);
 
-        log.info("🎉 Compte activé pour l'utilisateur ID: {}", user.getId());
+        log.info("🎉 Compte active pour l'utilisateur ID: {}", user.getId());
 
-        return new ApiResponse<>("Compte activé avec succès.", true, 200, null);
+        return new ApiResponse("Compte active avec succes.", 200, null); 
     }
 
-
-    /**
-     * Génère un code OTP de 6 chiffres.
-     */
     private String generateOtp() {
         Random random = new Random();
-        // Le format "%06d" assure que le nombre est paddé avec des zéros si moins de 6 chiffres.
         return String.format("%06d", random.nextInt(1000000));
     }
 
@@ -143,7 +125,6 @@ public class CompteService {
         user.setCompte(compte);
         userRepository.save(user);
 
-        // Génération OTP
         String otp = generateOtp();
         long expiryTime = Instant.now().getEpochSecond() + OTP_EXPIRATION_SECONDS;
 
@@ -155,22 +136,14 @@ public class CompteService {
         smsService.sendSms(user.getTelephone(),
                 String.format("Votre OTP marchant est : %s (expire dans 5 minutes)", otp));
 
-        log.info("🔥 Compte marchant créé pour user ID {} avec statut DISABLE", user.getId());
+        log.info("🔥 Compte marchant cree pour user ID {} avec statut DISABLE", user.getId());
 
-        return new ApiResponse<>("Compte marchant créé (DISABLE) et OTP envoyé.",
-                true,
-                201,
-                compte.getId());
+        return new ApiResponse("Compte marchant cree (DISABLE) et OTP envoye.", 201, compte.getId()); 
     }
 
-
-
-    /**
-     * Génère un code marchant sur 6 chiffres.
-     */
     private int generateCodeMarchant() {
         Random random = new Random();
-        return 100000 + random.nextInt(900000); // 6 digits
+        return 100000 + random.nextInt(900000);
     }
 
     @Transactional
@@ -180,16 +153,6 @@ public class CompteService {
                 .orElseThrow(() ->
                         new RuntimeException("Utilisateur introuvable"));
 
-        // Vérifier s’il a déjà un compte marchand
-        /*if (compteRepository.existsByUserIdAndTypeCompte(user.getId(), "MARCHAND")) {
-            return new ApiResponse<>(
-                    "Compte marchand déjà existant",
-                    false,
-                    409,
-                    null
-            );
-        }*/
-
         Compte compte = new Compte();
         compte.setNumCompte(UUID.randomUUID());
         compte.setSolde(0f);
@@ -198,7 +161,6 @@ public class CompteService {
         compte.setCodeMarchant(generateCodeMarchant());
         compte.setDateCreation(LocalDate.now());
 
-        // OTP
         String otp = generateOtp();
         compte.setOtpCode(otp);
         compte.setOtpExpiryTime(
@@ -212,56 +174,42 @@ public class CompteService {
                 "Votre OTP marchand est : " + otp
         );
 
-        return new ApiResponse<>(
-                "Compte marchand créé. OTP envoyé.",
-                true,
-                201,
-                compte.getId()
-        );
+        return new ApiResponse("Compte marchand cree. OTP envoye.", 201, compte.getId()); 
     }
 
-    /**
-     * Récupère le compte d'un utilisateur par son numéro de téléphone
-     */
     public ApiResponse getCompteByPhone(String telephone) {
-        log.info("🔍 Recherche du compte pour le numéro: {}", telephone);
-        
+        log.info("🔍 Recherche du compte pour le numero: {}", telephone);
+
         try {
-            // 1. Récupérer l'utilisateur par son numéro de téléphone
             Optional<User> userOptional = userRepository.findByTelephone(telephone);
-            
+
             if (userOptional.isEmpty()) {
-                log.warn("❌ Utilisateur non trouvé pour le numéro: {}", telephone);
+                log.warn("❌ Utilisateur non trouve pour le numero: {}", telephone);
                 return new ApiResponse(
-                        "Utilisateur non trouvé avec ce numéro de téléphone",
-                        false,
+                        "Utilisateur non trouve avec ce numero de telephone",
                         404,
-                        null
+                        false  
                 );
             }
-            
+
             User user = userOptional.get();
-            
-            // 2. Récupérer le compte associé à l'utilisateur
+
             if (user.getCompte() == null) {
-                log.warn("❌ Aucun compte trouvé pour l'utilisateur: {}", user.getNomUtilisateur());
+                log.warn("❌ Aucun compte trouve pour l'utilisateur: {}", user.getNomUtilisateur());
                 return new ApiResponse(
-                        "Aucun compte trouvé pour cet utilisateur",
-                        false,
+                        "Aucun compte trouve pour cet utilisateur",
                         404,
-                        null
+                        false  
                 );
             }
-            
+
             Compte compte = user.getCompte();
-            log.info("✅ Compte trouvé: {} - Solde: {} CFA", compte.getNumCompte(), compte.getSolde());
-            
-            // 3. Retourner les informations du compte
+            log.info("✅ Compte trouve: {} - Solde: {} CFA", compte.getNumCompte(), compte.getSolde());
+
             return new ApiResponse(
-                    "Compte récupéré avec succès",
-                    true,
+                    "Compte recupere avec succes",
                     200,
-                    java.util.Map.of(
+                    java.util.Map.of(  
                             "numCompte", compte.getNumCompte().toString(),
                             "solde", compte.getSolde(),
                             "typeCompte", compte.getTypeCompte(),
@@ -269,14 +217,13 @@ public class CompteService {
                             "dateCreation", compte.getDateCreation() != null ? compte.getDateCreation().toString() : null
                     )
             );
-            
+
         } catch (Exception e) {
-            log.error("❌ Erreur lors de la récupération du compte: {}", e.getMessage(), e);
+            log.error("❌ Erreur lors de la recuperation du compte: {}", e.getMessage(), e);
             return new ApiResponse(
-                    "Erreur lors de la récupération du compte: " + e.getMessage(),
-                    false,
+                    "Erreur lors de la recuperation du compte: " + e.getMessage(),
                     500,
-                    null
+                    false  
             );
         }
     }

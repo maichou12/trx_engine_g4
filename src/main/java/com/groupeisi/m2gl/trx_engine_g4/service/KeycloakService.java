@@ -28,20 +28,19 @@ public class KeycloakService {
     @Autowired
     public KeycloakService(
             @Value("${keycloak.auth-server-url}") String serverUrl,
-            @Value("${keycloak.realm}") String realm, // C'est trx_engine_g4
+            @Value("${keycloak.realm}") String realm,
             @Value("${keycloak.admin.username}") String adminUsername,
             @Value("${keycloak.admin.password}") String adminPassword) {
 
         this.keycloak = KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
-                .realm("master") // <--- CORRECTION ICI : L'admin se connecte via le realm 'master'
+                .realm("master")
                 .clientId("admin-cli")
                 .username(adminUsername)
                 .password(adminPassword)
                 .grantType(OAuth2Constants.PASSWORD)
                 .build();
 
-        // On garde votre realm cible pour les opérations (create/search users)
         this.realm = realm;
     }
 
@@ -59,14 +58,14 @@ public class KeycloakService {
         try {
             UserResource userResource = keycloak.realm(realm).users().get(userId);
             if (userResource == null) {
-                return new ApiResponse("Utilisateur non trouvé dans Keycloak", false, 404, null);
+                return new ApiResponse("Utilisateur non trouve dans Keycloak", 404, false); 
             }
             UserRepresentation userRepresentation = getUserRepresentation(userDTO);
             userResource.update(userRepresentation);
-            return new ApiResponse("Utilisateur mis à jour avec succès dans Keycloak", true, 200, null);
+            return new ApiResponse("Utilisateur mis a jour avec succes dans Keycloak", 200, null); 
 
         } catch (Exception e) {
-            return new ApiResponse("Erreur lors de la mise à jour de l'utilisateur dans Keycloak : " + e.getMessage(),false, 500, null);
+            return new ApiResponse("Erreur lors de la mise a jour de l'utilisateur dans Keycloak : " + e.getMessage(), 500, false); 
         }
     }
 
@@ -76,13 +75,13 @@ public class KeycloakService {
             try {
                 role = keycloak.realm(realm).roles().get(roleName).toRepresentation();
             } catch (Exception e) {
-                return new ApiResponse<>("Le rôle '" + roleName + "' n'existe pas.", false, 404, null);
+                return new ApiResponse("Le role '" + roleName + "' n'existe pas.", 404, false); 
             }
 
             keycloak.realm(realm).users().get(keycloakUserId).roles().realmLevel().add(Collections.singletonList(role));
-            return new ApiResponse<>("Rôle ajouté avec succès à l'utilisateur.", true, 200, null);
+            return new ApiResponse("Role ajoute avec succes a l'utilisateur.", 200, null); 
         } catch (Exception e) {
-            return new ApiResponse<>("Erreur lors de l'ajout du rôle à l'utilisateur : " + e.getMessage(), false, 500, null);
+            return new ApiResponse("Erreur lors de l'ajout du role a l'utilisateur : " + e.getMessage(), 500, false); 
         }
     }
 
@@ -90,57 +89,50 @@ public class KeycloakService {
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setEnabled(true);
         userRepresentation.setUsername(userDTO.getNomUtilisateur());
-        // userRepresentation.setEmail(userDTO.getEmail());
         userRepresentation.setFirstName(userDTO.getPrenom());
         userRepresentation.setLastName(userDTO.getNom());
         userRepresentation.setEmailVerified(true);
 
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
-        credential.setValue("password");
+        credential.setValue(userDTO.getPassword() != null ? userDTO.getPassword() : "password");
         credential.setTemporary(false);
         userRepresentation.setCredentials(Collections.singletonList(credential));
         return userRepresentation;
     }
 
-    public ApiResponse<String> usernameExists(String username) {
+    public ApiResponse usernameExists(String username) {
         UsersResource usersResource = keycloak.realm(realm).users();
         try {
             List<UserRepresentation> usersByUsername = usersResource.search(username, true);
             if (!usersByUsername.isEmpty()) {
-                return new ApiResponse<>("Username '" + username + "' already exists.", false, 409, null);
+                return new ApiResponse("Username '" + username + "' already exists.", 409, false); 
             }
-            return new ApiResponse<>("Username '" + username + "' is available.", true, 200, null);
+            return new ApiResponse("Username '" + username + "' is available.", 200, null); 
         } catch (Exception e) {
-            return new ApiResponse<>("An error occurred while checking the username.", false, 500, e.getMessage());
+            return new ApiResponse("An error occurred while checking the username.", 500, e.getMessage()); 
         }
     }
 
-    public ApiResponse<String> emailExists(String email) {
+    public ApiResponse emailExists(String email) {
         UsersResource usersResource = keycloak.realm(realm).users();
 
         try {
             List<UserRepresentation> usersByEmail = usersResource.search(email, null, null, null);
             if (!usersByEmail.isEmpty()) {
-                return new ApiResponse<>("Email '" + email + "' is already registered.", false, 409, null);
+                return new ApiResponse("Email '" + email + "' is already registered.", 409, false); 
             }
-            return new ApiResponse<>("Email '" + email + "' is available.", true, 200, null);
+            return new ApiResponse("Email '" + email + "' is available.", 200, null); 
         } catch (Exception e) {
-            return new ApiResponse<>("An error occurred while checking the email.", false, 500, e.getMessage());
+            return new ApiResponse("An error occurred while checking the email.", 500, e.getMessage()); 
         }
     }
 
-    // Méthode pour vérifier si un rôle existe dans Keycloak
     public Boolean roleExists(String roleName) {
         try {
             List<RoleRepresentation> roles = keycloak.realm(realm).roles().list();
             boolean roleExists = roles.stream().anyMatch(role -> role.getName().equals(roleName));
-
-            if (roleExists) {
-                return true;
-            } else {
-                return false;
-            }
+            return roleExists; // ✅ Simplifié
         } catch (Exception e) {
             return false;
         }
@@ -148,25 +140,19 @@ public class KeycloakService {
 
     public ApiResponse deleteUser(String keycloakUserId) {
         try {
-            // 1. Obtenir la ressource UsersResource du Realm
             UsersResource usersResource = keycloak.realm(realm).users();
-
-            // 2. Supprimer l'utilisateur via son ID
             Response response = usersResource.delete(keycloakUserId);
 
-            // 3. Vérifier la réponse
-            if (response.getStatus() == 204) { // HTTP 204 No Content indique un succès
-                return new ApiResponse<>("Utilisateur Keycloak supprimé avec succès.", true, 204, null);
+            if (response.getStatus() == 204) {
+                return new ApiResponse("Utilisateur Keycloak supprime avec succes.", 204, null); 
             } else if (response.getStatus() == 404) {
-                return new ApiResponse<>("Utilisateur Keycloak non trouvé pour la suppression.", false, 404, null);
+                return new ApiResponse("Utilisateur Keycloak non trouve pour la suppression.", 404, false); 
             } else {
-                // Gérer les autres codes d'erreur
-                return new ApiResponse<>("Échec de la suppression Keycloak. Code: " + response.getStatus(), false, response.getStatus(), null);
+                return new ApiResponse("Echec de la suppression Keycloak. Code: " + response.getStatus(), response.getStatus(), false); 
             }
 
         } catch (Exception e) {
-            // Gérer les exceptions potentielles (e.g., problème de connexion Keycloak)
-            return new ApiResponse<>("Erreur inattendue lors de la suppression Keycloak : " + e.getMessage(), false, 500, null);
+            return new ApiResponse("Erreur inattendue lors de la suppression Keycloak : " + e.getMessage(), 500, false); 
         }
     }
 }

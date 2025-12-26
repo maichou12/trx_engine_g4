@@ -29,7 +29,7 @@ public class TransfertService {
     private final UserRepository userRepository;
 
     @Transactional
-    public ApiResponse<Transfert> effectuerTransfert(TransfertDto transfertDto) {
+    public ApiResponse effectuerTransfert(TransfertDto transfertDto) {
         // 1. Extraction des données simplifiée
         float montant = transfertDto.getMontant();
         UUID uuidEmetteur = transfertDto.getCompteEmetteur();
@@ -65,7 +65,7 @@ public class TransfertService {
         Transfert nouveauTransfert = enregistrerTransfert(transfertDto);
 
         // 7. Retourne l'ApiResponse formaté
-        return new ApiResponse<>(
+        return new ApiResponse(
                 "La transaction a été effectuée avec succès.",
                 HttpStatus.CREATED.value(),
                 null
@@ -93,68 +93,66 @@ public class TransfertService {
      * Récupère l'historique des transactions d'un utilisateur par son numéro de téléphone
      */
     public ApiResponse getTransfertsByUser(String phoneNumber) {
-        log.info("📋 Récupération de l'historique pour: {}", phoneNumber);
-        
+        log.info("📋 Recuperation de l'historique pour: {}", phoneNumber);
+
         try {
             // 1. Récupérer l'utilisateur
             Optional<User> userOptional = userRepository.findByTelephone(phoneNumber);
             if (userOptional.isEmpty()) {
                 return new ApiResponse(
-                        "Utilisateur non trouvé",
-                        false,
+                        "Utilisateur non trouve",
                         404,
-                        new ArrayList<>()
+                        false  // ✅ Ordre corrigé: message, statusCode, success
                 );
             }
-            
+
             User user = userOptional.get();
             if (user.getCompte() == null) {
                 return new ApiResponse(
-                        "Aucun compte trouvé",
-                        false,
+                        "Aucun compte trouve",
                         404,
-                        new ArrayList<>()
+                        false  // ✅ Ordre corrigé
                 );
             }
-            
+
             UUID numCompte = user.getCompte().getNumCompte();
-            
+
             // 2. Récupérer tous les transferts
             List<Transfert> allTransferts = transfertRepository.findAll();
-            
+
             // 3. Filtrer les transferts où l'utilisateur est émetteur ou récepteur
             List<Map<String, Object>> transactions = allTransferts.stream()
                     .filter(t -> t.getDetailsTransaction() != null &&
                             (t.getDetailsTransaction().getCompteEmetteur().equals(numCompte) ||
-                             t.getDetailsTransaction().getCompteRecepteur().equals(numCompte)))
+                                    t.getDetailsTransaction().getCompteRecepteur().equals(numCompte)))
                     .sorted((t1, t2) -> t2.getDateTransfert().compareTo(t1.getDateTransfert()))
                     .map(t -> {
                         boolean isDebit = t.getDetailsTransaction().getCompteEmetteur().equals(numCompte);
-                        UUID autreCompteId = isDebit 
-                            ? t.getDetailsTransaction().getCompteRecepteur() 
-                            : t.getDetailsTransaction().getCompteEmetteur();
-                        
+                        UUID autreCompteId = isDebit
+                                ? t.getDetailsTransaction().getCompteRecepteur()
+                                : t.getDetailsTransaction().getCompteEmetteur();
+
                         // Récupérer les infos de l'autre compte
                         Optional<Compte> autreCompteOpt = compteRepository.findByNumCompte(autreCompteId);
                         String autreNom = "Inconnu";
                         String autreTelephone = "";
-                        
+
                         if (autreCompteOpt.isPresent()) {
                             Compte autreCompte = autreCompteOpt.get();
                             // Récupérer l'utilisateur associé
                             Optional<User> autreUserOpt = userRepository.findAll().stream()
-                                .filter(u -> u.getCompte() != null && u.getCompte().getId().equals(autreCompte.getId()))
-                                .findFirst();
-                            
+                                    .filter(u -> u.getCompte() != null && u.getCompte().getId().equals(autreCompte.getId()))
+                                    .findFirst();
+
                             if (autreUserOpt.isPresent()) {
                                 User autreUser = autreUserOpt.get();
                                 autreNom = (autreUser.getPrenom() != null && autreUser.getNom() != null)
-                                    ? autreUser.getPrenom() + " " + autreUser.getNom()
-                                    : autreUser.getNomUtilisateur();
+                                        ? autreUser.getPrenom() + " " + autreUser.getNom()
+                                        : autreUser.getNomUtilisateur();
                                 autreTelephone = autreUser.getTelephone();
                             }
                         }
-                        
+
                         Map<String, Object> transaction = new HashMap<>();
                         transaction.put("id", t.getId());
                         transaction.put("montant", t.getMontant());
@@ -166,23 +164,21 @@ public class TransfertService {
                         return transaction;
                     })
                     .collect(Collectors.toList());
-            
-            log.info("✅ {} transactions trouvées", transactions.size());
-            
+
+            log.info("✅ {} transactions trouvees", transactions.size());
+
             return new ApiResponse(
-                    "Historique récupéré avec succès",
-                    true,
+                    "Historique recupere avec succes",
                     200,
-                    transactions
+                    transactions  // ✅ Ordre corrigé: message, statusCode, data
             );
-            
+
         } catch (Exception e) {
-            log.error("❌ Erreur lors de la récupération de l'historique: {}", e.getMessage(), e);
+            log.error("❌ Erreur lors de la recuperation de l'historique: {}", e.getMessage(), e);
             return new ApiResponse(
                     "Erreur: " + e.getMessage(),
-                    false,
                     500,
-                    new ArrayList<>()
+                    false  // ✅ Ordre corrigé: message, statusCode, success
             );
         }
     }

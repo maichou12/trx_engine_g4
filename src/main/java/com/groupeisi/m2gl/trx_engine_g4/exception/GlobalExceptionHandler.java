@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
 
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Void>> handleJsonParsingError(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ApiResponse> handleJsonParsingError(HttpMessageNotReadableException ex) {
         String errorMessage = "Erreur de format JSON. Vérifiez la syntaxe (ex: UUID, types de données).";
 
         // Si l'erreur concerne un UUID malformé, on peut donner plus de détails
@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
             errorMessage = "Erreur de format UUID. L'identifiant de compte doit être au format 36 caractères standard.";
         }
 
-        ApiResponse<Void> errorResponse = new ApiResponse<>(
+        ApiResponse errorResponse = new ApiResponse(
                 errorMessage,
                 HttpStatus.BAD_REQUEST.value(),
                 false

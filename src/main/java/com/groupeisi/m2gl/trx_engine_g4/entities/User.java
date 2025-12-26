@@ -1,5 +1,7 @@
 package com.groupeisi.m2gl.trx_engine_g4.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -10,6 +12,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "app_user")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})  // ✅ AJOUTÉ
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,29 +20,22 @@ public class User {
 
     private String keycloakId;
 
-    @NotBlank(message = "Le nom est obligatoire")
-    @Size(min = 2, max = 50, message = "Le nom doit contenir entre 2 et 50 caractères")
-    private String nom;
+    // ❌ PROBLÈME : @NotBlank ne doit PAS être sur l'entité si les champs peuvent être null temporairement
+    // Utilisez @NotBlank uniquement dans les DTOs ou les requests de validation
+    private String nom;  // ✅ Supprimé @NotBlank et @Size
 
-    @NotBlank(message = "Le prénom est obligatoire")
-    @Size(min = 2, max = 50, message = "Le prénom doit contenir entre 2 et 50 caractères")
-    private String prenom;
+    private String prenom;  // ✅ Supprimé @NotBlank et @Size
 
-    @NotBlank(message = "Le nom d'utilisateur est obligatoire")
-    private String nomUtilisateur;
+    private String nomUtilisateur;  // ✅ Supprimé @NotBlank
 
-    @NotBlank(message = "Le numéro de téléphone est obligatoire")
-    private String telephone;
+    private String telephone;  // ✅ Supprimé @NotBlank
 
     private Long nin;
 
-    @NotBlank(message = "Le du rôle est obligatoire")
-    private String roleName;
+    private String roleName;  // ✅ Supprimé @NotBlank
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)  // ✅ AJOUTÉ cascade
     @JoinColumn(name = "compte_id")
+    @JsonManagedReference  // ✅ AJOUTÉ pour éviter les cycles infinis
     private Compte compte;
-
-
-    // creer un endPoint qui cree un compteMarchant avec code marchant et retourne un status 201 + id du compte
 }
