@@ -1,5 +1,6 @@
 package com.groupeisi.m2gl.trx_engine_g4.controller;
 
+import com.groupeisi.m2gl.trx_engine_g4.DTOs.LoginRequest;
 import com.groupeisi.m2gl.trx_engine_g4.DTOs.UserDto;
 import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse;
 import com.groupeisi.m2gl.trx_engine_g4.request.RegisterRequest;
@@ -47,6 +48,4 @@ public class UserController {
     public ResponseEntity<ApiResponse> getUserByPhone(@PathVariable String phone) {
         return ResponseEntity.ok(userService.getUserByPhone(phone));
     }
-
-
 }

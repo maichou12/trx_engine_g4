@@ -11,4 +11,5 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByKeycloakId(String keycloakId);
     Optional<User> findByTelephone(String telephone);
     Optional<User> findByCompteId(Integer compteId);
+    Optional<User> findByNomUtilisateur(String nomUtilisateur);
 }

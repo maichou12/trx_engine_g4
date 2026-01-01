@@ -1,5 +1,7 @@
 package com.groupeisi.m2gl.trx_engine_g4.service;
 
+import com.groupeisi.m2gl.trx_engine_g4.DTOs.LoginRequest;
+import com.groupeisi.m2gl.trx_engine_g4.clients.MarchandGraphQLClient;
 import com.groupeisi.m2gl.trx_engine_g4.entities.User;
 import com.groupeisi.m2gl.trx_engine_g4.exception.ApiResponse;
 import com.groupeisi.m2gl.trx_engine_g4.Repository.UserRepository;
@@ -26,15 +28,19 @@ public class UserService {
     private final org.modelmapper.ModelMapper modelMapper;
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+[1-9]\\d{1,14}$");
     private final CompteService compteService;
+    private final MarchandGraphQLClient graphQLClient;
+    private final KeycloakAuthService keycloakAuthService;
 
     @Autowired
     public UserService(PlatformTransactionManager transactionManager, KeycloakService keycloakService,
                        UserRepository userRepository, org.modelmapper.ModelMapper modelMapper,
-                       CompteService compteService) {
+                       CompteService compteService, MarchandGraphQLClient graphQLClient, KeycloakAuthService keycloakAuthService) {
         this.keycloakService = keycloakService;
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.compteService = compteService;
+        this.graphQLClient = graphQLClient;
+        this.keycloakAuthService = keycloakAuthService;
     }
 
     /**
@@ -209,6 +215,7 @@ public class UserService {
         userDTO.setPrenom(request.getPrenom());
         userDTO.setNom(request.getNom());
         userDTO.setRoleName(request.getRoleName());
+        userDTO.setPassword(request.getPassword());
         return userDTO;
     }
 
@@ -395,10 +402,14 @@ public class UserService {
 
             // 5. Création dans Keycloak (Étape critique 1)
             keycloakUserId = keycloakService.createUser(userDTO);
-            log.info("   ✅ Utilisateur créé dans Keycloak ID = {}", keycloakUserId);
+            /*keycloakService.setUserPassword(
+                    keycloakUserId,
+                    registerRequest.getPassword()
+            );*/
+            log.info("Utilisateur créé dans Keycloak ID = {}", keycloakUserId);
 
             // 6. Attribution rôle
-            String roleName = registerRequest.getRoleName() != null ? registerRequest.getRoleName() : "user";
+            String roleName = registerRequest.getRoleName() != null ? registerRequest.getRoleName() : "marchand";
             ApiResponse roleResponse = keycloakService.addRoleToUser(keycloakUserId, roleName);
 
             if (!roleResponse.isSuccess()) {
@@ -453,6 +464,66 @@ public class UserService {
             return new ApiResponse<>("Erreur technique: " + e.getMessage(), false, 500, null);
         }
     }
+
+    /*public User findByUsernameOrTelephone(String login) {
+
+        return userRepository.findByNomUtilisateur(login)
+                .or(() -> userRepository.findByTelephone(login))
+                .orElse(null);
+    }*/
+    public ApiResponse loginMarchand(LoginRequest request) {
+
+        if (request.getNom_utilisateur() == null || request.getPassword() == null) {
+            return new ApiResponse(
+                    "Username ou mot de passe manquant",
+                    false,
+                    400,
+                    null
+            );
+        }
+
+        Map<String, Object> token;
+        try {
+            token = keycloakAuthService.login(
+                    request.getNom_utilisateur(),
+                    request.getPassword()
+            );
+        } catch (Exception e) {
+            return new ApiResponse(
+                    "Identifiants invalides",
+                    false,
+                    401,
+                    null
+            );
+        }
+
+        User user = userRepository
+                .findByNomUtilisateur(request.getNom_utilisateur())
+                .orElseThrow(() ->
+                        new RuntimeException("Utilisateur introuvable")
+                );
+
+        if (!"marchand".equalsIgnoreCase(user.getRoleName())) {
+            return new ApiResponse(
+                    "Accès refusé : non marchand",
+                    false,
+                    403,
+                    null
+            );
+        }
+
+        return new ApiResponse(
+                "Connexion réussie",
+                true,
+                200,
+                token
+        );
+    }
+
+
+
+
+
 }
 
 

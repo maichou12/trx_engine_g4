@@ -93,11 +93,12 @@ public class KeycloakService {
         // userRepresentation.setEmail(userDTO.getEmail());
         userRepresentation.setFirstName(userDTO.getPrenom());
         userRepresentation.setLastName(userDTO.getNom());
+        userRepresentation.setEmail(userDTO.getNomUtilisateur()+"trxengine@gmail.com");
         userRepresentation.setEmailVerified(true);
 
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
-        credential.setValue("password");
+        credential.setValue(userDTO.getPassword());
         credential.setTemporary(false);
         userRepresentation.setCredentials(Collections.singletonList(credential));
         return userRepresentation;
@@ -168,5 +169,17 @@ public class KeycloakService {
             // Gérer les exceptions potentielles (e.g., problème de connexion Keycloak)
             return new ApiResponse<>("Erreur inattendue lors de la suppression Keycloak : " + e.getMessage(), false, 500, null);
         }
+    }
+    public void setUserPassword(String userId, String rawPassword) {
+
+        CredentialRepresentation credential = new CredentialRepresentation();
+        credential.setTemporary(false);
+        credential.setType(CredentialRepresentation.PASSWORD);
+        credential.setValue(rawPassword);
+
+        keycloak.realm(realm)
+                .users()
+                .get(userId)
+                .resetPassword(credential);
     }
 }
